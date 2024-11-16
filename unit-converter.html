@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="https://raw.githubusercontent.com/OmHackz/Converter/refs/heads/main/icon.png" type="image/x-icon">
+    <title>Unit Converter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            color: #333;
+        }
+
+        select, input, .button, #output {
+            font-size: 1.2em;
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+        .result {
+            font-size: 1.5em;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #4CAF50;
+            cursor: pointer;
+            display: none;  /* Hide result initially */
+            word-wrap: break-word;
+            white-space: nowrap;
+        }
+
+        /* To make the output field width match input fields */
+        #output {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Unit Converter</h1>
+        <p>Convert between Length, Weight, Time, Area, and Data Units</p>
+
+        <select id="category" onchange="updateUnits()">
+            <option value="length">Length</option>
+            <option value="weight">Weight</option>
+            <option value="time">Time</option>
+            <option value="area">Area</option>
+            <option value="data">Data</option>
+        </select>
+
+        <input type="number" id="inputValue" placeholder="Enter Value" step="any">
+
+        <select id="unitFrom"></select>
+
+        <select id="unitTo"></select>
+
+        <button class="button" onclick="convert()">Convert</button>
+
+        <div id="output" class="result" onclick="copyToClipboard()"></div>
+    </div>
+
+    <script>
+        // Conversion factors
+        const conversions = {
+            length: {
+                "km": 1000,
+                "m": 1,
+                "mm": 0.001,
+                "dm": 0.1,
+                "yd": 0.9144
+            },
+            weight: {
+                "kg": 1,
+                "g": 0.001,
+                "mg": 0.000001,
+                "lb": 0.453592
+            },
+            time: {
+                "s": 1,
+                "min": 60,
+                "h": 3600,
+                "d": 86400
+            },
+            area: {
+                "m²": 1,
+                "km²": 1e6,
+                "mm²": 1e-6,
+                "in²": 0.00064516,
+                "ac": 4046.86
+            },
+            data: {
+                "B": 1,
+                "KB": 1024,
+                "MB": 1024 * 1024,
+                "GB": 1024 * 1024 * 1024,
+                "TB": 1024 * 1024 * 1024 * 1024
+            }
+        };
+
+        // Function to update unit options based on selected category
+        function updateUnits() {
+            const category = document.getElementById("category").value;
+            const unitFromSelect = document.getElementById("unitFrom");
+            const unitToSelect = document.getElementById("unitTo");
+            let units = [];
+
+            if (category === "length") {
+                units = ["km", "m", "mm", "dm", "yd"];
+            } else if (category === "weight") {
+                units = ["kg", "g", "mg", "lb"];
+            } else if (category === "time") {
+                units = ["s", "min", "h", "d"];
+            } else if (category === "area") {
+                units = ["m²", "km²", "mm²", "in²", "ac"];
+            } else if (category === "data") {
+                units = ["B", "KB", "MB", "GB", "TB"];
+            }
+
+            // Clear existing options
+            unitFromSelect.innerHTML = "";
+            unitToSelect.innerHTML = "";
+
+            // Populate new options
+            units.forEach(unit => {
+                const optionFrom = document.createElement("option");
+                optionFrom.value = unit;
+                optionFrom.textContent = unit;
+                unitFromSelect.appendChild(optionFrom);
+
+                const optionTo = document.createElement("option");
+                optionTo.value = unit;
+                optionTo.textContent = unit;
+                unitToSelect.appendChild(optionTo);
+            });
+        }
+
+        // Convert function
+        function convert() {
+            const category = document.getElementById("category").value;
+            const inputValue = parseFloat(document.getElementById("inputValue").value);
+            const unitFrom = document.getElementById("unitFrom").value;
+            const unitTo = document.getElementById("unitTo").value;
+
+            if (isNaN(inputValue)) {
+                alert("Please enter a valid number.");
+                return;
+            }
+
+            let result;
+
+            if (category === "length") {
+                result = convertLength(inputValue, unitFrom, unitTo);
+            } else if (category === "weight") {
+                result = convertWeight(inputValue, unitFrom, unitTo);
+            } else if (category === "time") {
+                result = convertTime(inputValue, unitFrom, unitTo);
+            } else if (category === "area") {
+                result = convertArea(inputValue, unitFrom, unitTo);
+            } else if (category === "data") {
+                result = convertData(inputValue, unitFrom, unitTo);
+            }
+
+            // Display result
+            const output = document.getElementById("output");
+            output.textContent = `${result} ${unitTo}`;  // Set the result text with unit
+            output.style.display = "block";  // Show the result
+        }
+
+        // Length conversion logic
+        function convertLength(value, fromUnit, toUnit) {
+            return (value * conversions.length[fromUnit] / conversions.length[toUnit]).toFixed(4);
+        }
+
+        // Weight conversion logic
+        function convertWeight(value, fromUnit, toUnit) {
+            return (value * conversions.weight[fromUnit] / conversions.weight[toUnit]).toFixed(4);
+        }
+
+        // Time conversion logic
+        function convertTime(value, fromUnit, toUnit) {
+            return (value * conversions.time[fromUnit] / conversions.time[toUnit]).toFixed(4);
+        }
+
+        // Area conversion logic
+        function convertArea(value, fromUnit, toUnit) {
+            return (value * conversions.area[fromUnit] / conversions.area[toUnit]).toFixed(4);
+        }
+
+        // Data conversion logic
+        function convertData(value, fromUnit, toUnit) {
+            return (value * conversions.data[fromUnit] / conversions.data[toUnit]).toFixed(4);
+        }
+
+        // Function to copy result to clipboard
+        function copyToClipboard() {
+            const resultText = document.getElementById("output").textContent;
+            const textArea = document.createElement("textarea");
+            textArea.value = resultText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textArea);
+            alert("Result copied to clipboard!");  // Notify user that the result was copied
+        }
+
+        // Initialize units on page load
+        window.onload = function() {
+            updateUnits();
+        };
+    </script>
+
+</body>
+</html>
