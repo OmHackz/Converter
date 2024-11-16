@@ -3,246 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="shortcut icon" href="https://raw.githubusercontent.com/OmHackz/Converter/refs/heads/main/icon.png" type="image/x-icon">
-    <title>Unit Converter</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f9;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            width: 400px;
-            text-align: center;
-        }
-
-        h1 {
-            font-size: 1.8em;
-            color: #333;
-        }
-
-        select, input, .button, #output {
-            font-size: 1.2em;
-            padding: 10px;
-            margin: 10px 0;
-            width: 100%;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-        }
-
-        .button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .button:hover {
-            background-color: #45a049;
-        }
-
-        .result {
-            font-size: 1.5em;
-            margin-top: 20px;
-            font-weight: bold;
-            color: #4CAF50;
-            cursor: pointer;
-            display: none;  /* Hide result initially */
-            word-wrap: break-word;
-            white-space: nowrap;
-        }
-
-        /* To make the output field width match input fields */
-        #output {
-            cursor: pointer;
-        }
-    </style>
+    <title>Multi-Format Image Converter</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Include jsPDF library for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
 </head>
+<style>
+    body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f5;
+}
+
+.container {
+    text-align: center;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    max-width: 400px;
+}
+
+h1 {
+    font-size: 1.8em;
+    color: #333;
+}
+
+p {
+    font-size: 1em;
+    color: #666;
+}
+
+input[type="file"],
+select,
+.button {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.button:hover {
+    background-color: #45a049;
+}
+
+#outputImage {
+    margin-top: 20px;
+    max-width: 100%;
+    height: auto;
+    display: none;
+}
+
+#downloadLink {
+    margin-top: 20px;
+    display: none;
+    text-decoration: none;
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+#downloadLink:hover {
+    background-color: #45a049;
+}
+
+</style>
 <body>
-
+    <!-- The rest of your HTML structure remains the same -->
     <div class="container">
-        <h1>Unit Converter</h1>
-        <p>Convert between Length, Weight, Time, Area, and Data Units</p>
+        <h1>Multi-Format Image Converter</h1>
+        <p>Upload an image (PNG, JPG, AVIF) and choose the format to convert to:</p>
 
-        <select id="category" onchange="updateUnits()">
-            <option value="length">Length</option>
-            <option value="weight">Weight</option>
-            <option value="time">Time</option>
-            <option value="area">Area</option>
-            <option value="data">Data</option>
+        <input type="file" id="fileInput" accept="image/png, image/jpeg, image/avif">
+        <select id="formatSelect">
+            <option value="jpeg">Convert to JPEG</option>
+            <option value="png">Convert to PNG</option>
+            <option value="pdf">Convert to PDF</option>
         </select>
+        <button class="button" onclick="convertImage()">Convert</button>
 
-        <input type="number" id="inputValue" placeholder="Enter Value" step="any">
-
-        <select id="unitFrom"></select>
-
-        <select id="unitTo"></select>
-
-        <button class="button" onclick="convert()">Convert</button>
-
-        <div id="output" class="result" onclick="copyToClipboard()"></div>
+        <h3>Converted Image:</h3>
+        <a id="downloadLink" class="button" style="display: none;">Download Converted File</a>
+        <img id="outputImage">
     </div>
 
+    <script src="script.js"></script>
     <script>
-        // Conversion factors
-        const conversions = {
-            length: {
-                "km": 1000,
-                "m": 1,
-                "mm": 0.001,
-                "dm": 0.1,
-                "yd": 0.9144
-            },
-            weight: {
-                "kg": 1,
-                "g": 0.001,
-                "mg": 0.000001,
-                "lb": 0.453592
-            },
-            time: {
-                "s": 1,
-                "min": 60,
-                "h": 3600,
-                "d": 86400
-            },
-            area: {
-                "m²": 1,
-                "km²": 1e6,
-                "mm²": 1e-6,
-                "in²": 0.00064516,
-                "ac": 4046.86
-            },
-            data: {
-                "B": 1,
-                "KB": 1024,
-                "MB": 1024 * 1024,
-                "GB": 1024 * 1024 * 1024,
-                "TB": 1024 * 1024 * 1024 * 1024
+        function convertImage() {
+    const fileInput = document.getElementById('fileInput');
+    const formatSelect = document.getElementById('formatSelect');
+    const outputImage = document.getElementById('outputImage');
+    const downloadLink = document.getElementById('downloadLink');
+
+    // Clear previous output
+    outputImage.style.display = 'none';
+    downloadLink.style.display = 'none';
+
+    if (fileInput.files.length === 0) {
+        alert('Please select an image file!');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    const selectedFormat = formatSelect.value;
+
+    reader.onload = function(event) {
+        const img = new Image();
+        img.src = event.target.result;
+
+        img.onload = function() {
+            if (selectedFormat === 'pdf') {
+                // Convert to PDF using jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF();
+
+                const width = pdf.internal.pageSize.getWidth();
+                const height = (img.height / img.width) * width;
+
+                pdf.addImage(img, 'JPEG', 0, 0, width, height);
+
+                const pdfUrl = pdf.output('bloburl');
+
+                // Set download link for PDF
+                downloadLink.href = pdfUrl;
+                downloadLink.download = 'converted-image.pdf';
+                downloadLink.style.display = 'inline-block';
+                downloadLink.textContent = 'Download PDF';
+
+            } else {
+                // Create a canvas and draw the image on it
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+
+                let convertedDataUrl;
+                if (selectedFormat === 'jpeg') {
+                    convertedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+                } else if (selectedFormat === 'png') {
+                    convertedDataUrl = canvas.toDataURL('image/png');
+                }
+
+                outputImage.src = convertedDataUrl;
+                outputImage.style.display = 'block';
+
+                // Set up the download link for JPEG/PNG
+                downloadLink.href = convertedDataUrl;
+                downloadLink.download = `converted-image.${selectedFormat}`;
+                downloadLink.style.display = 'inline-block';
+                downloadLink.textContent = `Download ${selectedFormat.toUpperCase()}`;
             }
         };
+    };
 
-        // Function to update unit options based on selected category
-        function updateUnits() {
-            const category = document.getElementById("category").value;
-            const unitFromSelect = document.getElementById("unitFrom");
-            const unitToSelect = document.getElementById("unitTo");
-            let units = [];
+    reader.readAsDataURL(file);
+}
 
-            if (category === "length") {
-                units = ["km", "m", "mm", "dm", "yd"];
-            } else if (category === "weight") {
-                units = ["kg", "g", "mg", "lb"];
-            } else if (category === "time") {
-                units = ["s", "min", "h", "d"];
-            } else if (category === "area") {
-                units = ["m²", "km²", "mm²", "in²", "ac"];
-            } else if (category === "data") {
-                units = ["B", "KB", "MB", "GB", "TB"];
-            }
-
-            // Clear existing options
-            unitFromSelect.innerHTML = "";
-            unitToSelect.innerHTML = "";
-
-            // Populate new options
-            units.forEach(unit => {
-                const optionFrom = document.createElement("option");
-                optionFrom.value = unit;
-                optionFrom.textContent = unit;
-                unitFromSelect.appendChild(optionFrom);
-
-                const optionTo = document.createElement("option");
-                optionTo.value = unit;
-                optionTo.textContent = unit;
-                unitToSelect.appendChild(optionTo);
-            });
-        }
-
-        // Convert function
-        function convert() {
-            const category = document.getElementById("category").value;
-            const inputValue = parseFloat(document.getElementById("inputValue").value);
-            const unitFrom = document.getElementById("unitFrom").value;
-            const unitTo = document.getElementById("unitTo").value;
-
-            if (isNaN(inputValue)) {
-                alert("Please enter a valid number.");
-                return;
-            }
-
-            let result;
-
-            if (category === "length") {
-                result = convertLength(inputValue, unitFrom, unitTo);
-            } else if (category === "weight") {
-                result = convertWeight(inputValue, unitFrom, unitTo);
-            } else if (category === "time") {
-                result = convertTime(inputValue, unitFrom, unitTo);
-            } else if (category === "area") {
-                result = convertArea(inputValue, unitFrom, unitTo);
-            } else if (category === "data") {
-                result = convertData(inputValue, unitFrom, unitTo);
-            }
-
-            // Display result
-            const output = document.getElementById("output");
-            output.textContent = `${result} ${unitTo}`;  // Set the result text with unit
-            output.style.display = "block";  // Show the result
-        }
-
-        // Length conversion logic
-        function convertLength(value, fromUnit, toUnit) {
-            return (value * conversions.length[fromUnit] / conversions.length[toUnit]).toFixed(4);
-        }
-
-        // Weight conversion logic
-        function convertWeight(value, fromUnit, toUnit) {
-            return (value * conversions.weight[fromUnit] / conversions.weight[toUnit]).toFixed(4);
-        }
-
-        // Time conversion logic
-        function convertTime(value, fromUnit, toUnit) {
-            return (value * conversions.time[fromUnit] / conversions.time[toUnit]).toFixed(4);
-        }
-
-        // Area conversion logic
-        function convertArea(value, fromUnit, toUnit) {
-            return (value * conversions.area[fromUnit] / conversions.area[toUnit]).toFixed(4);
-        }
-
-        // Data conversion logic
-        function convertData(value, fromUnit, toUnit) {
-            return (value * conversions.data[fromUnit] / conversions.data[toUnit]).toFixed(4);
-        }
-
-        // Function to copy result to clipboard
-        function copyToClipboard() {
-            const resultText = document.getElementById("output").textContent;
-            const textArea = document.createElement("textarea");
-            textArea.value = resultText;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand("copy");
-            document.body.removeChild(textArea);
-            alert("Result copied to clipboard!");  // Notify user that the result was copied
-        }
-
-        // Initialize units on page load
-        window.onload = function() {
-            updateUnits();
-        };
     </script>
-
 </body>
 </html>
